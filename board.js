@@ -19,6 +19,7 @@ function draw_board(){
 
     canvas.addEventListener('click', board_click, false);
     selectedPiece = null;
+    //prevSelectedPiece = null;
 }
 
 function generate_board(){
@@ -65,9 +66,11 @@ function getSquareColor(r, s, clicked, possible){
 
 function drawPieces(){
     for(var i = 0; i < game.black.length; ++i){
+        if(game.black[i].captured) continue;
         drawPiece(game.black[i], true);
     }
     for(var i = 0; i < game.white.length; ++i){
+        if(game.white[i].captured) continue;
         drawPiece(game.white[i], false);
     }
 }
@@ -93,7 +96,10 @@ function board_click(ev){
     var y = 7 - Math.floor((ev.layerY - canvas.offsetTop)/square_dimension);
 
     if(selectedPiece){
-        makemove(selectedPiece, y, x);
+        var successful = makemove(selectedPiece, y, x);
+        if(!successful){
+
+        }
     }
     else{
         selectedPiece = null;
@@ -109,6 +115,9 @@ function board_click(ev){
             highlightPossibleMoves(selectedPiece);
         }
     }
+    context.strokeStyle = "black";
+    context.lineWidth = 3;
+    context.strokeRect(0, 0, 8 * square_dimension, 8 * square_dimension);
 }
 function highlightSquare(piece_in){
     //drawSquare(piece_in.col, 7 - piece_in.row, true, false);
@@ -132,6 +141,7 @@ function highlightPossibleMoves(piece_in){
             square_dimension - (3 * 2), 
             square_dimension - (3 * 2));
     }
+    drawPieces();
 }
 
 function getPossibleMoves(piece_in){
@@ -150,6 +160,13 @@ function getPossibleMoves(piece_in){
                 possible_moves.push({"row": piece_in.row + 1, "col": piece_in.col});
             }
             //do capture
+            if(squareOccupied(piece_in.row + 1, piece_in.col + 1) && pieceOnSquare == "black"){
+                possible_moves.push({"row": piece_in.row + 1, "col": piece_in.col + 1});
+            }
+            if(squareOccupied(piece_in.row + 1, piece_in.col - 1) && pieceOnSquare == "black"){
+                possible_moves.push({"row": piece_in.row + 1, "col": piece_in.col- 1});
+            }
+
 
         }
         else{
@@ -164,6 +181,12 @@ function getPossibleMoves(piece_in){
                 possible_moves.push({"row": piece_in.row - 1, "col": piece_in.col});
             }
             //do capture
+            if(squareOccupied(piece_in.row + 1, piece_in.col + 1) && pieceOnSquare == "white"){
+                possible_moves.push({"row": piece_in.row - 1, "col": piece_in.col + 1});
+            }
+            if(squareOccupied(piece_in.row + 1, piece_in.col - 1) && pieceOnSquare == "white"){
+                possible_moves.push({"row": piece_in.row - 1, "col": piece_in.col- 1});
+            }
 
         }
     }
@@ -626,11 +649,17 @@ function makemove(piece_in, row, col){
     }
     if(legal){
         drawSquare(piece_in.col, 7 - piece_in.row, false, false);
-        piece_in.row = row;
-        piece_in.col = col;
         for(var i = 0; i < all_possible_moves.length; ++i){
             drawSquare(all_possible_moves[i].col, 7 - all_possible_moves[i].row, false, false);
         }
+        posPiece = squareOccupied(row, col);
+        if(posPiece && pieceOnSquare != game.playerToMove){
+            posPiece.captured = true;
+            posPiece.row = -1;
+            posPiece.col = -1;
+        }
+        piece_in.row = row;
+        piece_in.col = col;
         drawPieces();
         if(game.playerToMove == "white"){
             game.playerToMove = "black";
@@ -638,8 +667,18 @@ function makemove(piece_in, row, col){
         else{
             game.playerToMove = "white";
         }
-        selectedPiece = null;
+        //selectedPiece = null;
     }
+    else{
+        drawSquare(piece_in.col, 7 - piece_in.row, false, false);
+        for(var i = 0; i < all_possible_moves.length; ++i){
+            drawSquare(all_possible_moves[i].col, 7 - all_possible_moves[i].row, false, false);
+        }
+        drawPieces();
+    }
+    selectedPiece = null;
+    if(legal) return true;
+    else return false;
 }
 function getStartingPosition(){
     var start = 
